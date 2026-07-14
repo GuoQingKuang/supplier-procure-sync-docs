@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采购订单列表 - 供应商物料系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; }
+
+        .navbar { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; height: 48px; display: flex; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .navbar .logo { font-size: 16px; font-weight: 600; color: #1890ff; }
+        .navbar .logo span { color: #333; font-weight: 400; margin-left: 8px; font-size: 13px; }
+
+        .container { max-width: 1400px; margin: 24px auto; padding: 0 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 8px; }
+
+        .search-panel { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .search-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .search-item { display: flex; align-items: center; gap: 8px; }
+        .search-item label { font-size: 14px; color: #666; white-space: nowrap; }
+        .search-item input[type="text"],
+        .search-item input[type="date"] { border: 1px solid #d9d9d9; border-radius: 4px; padding: 6px 12px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .search-item input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        .search-item input[type="text"] { width: 220px; }
+        .search-item input[type="date"] { width: 150px; }
+        .btn { padding: 6px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-primary:disabled { background: #d9d9d9; cursor: not-allowed; }
+        .btn-default { background: #fff; color: #666; border: 1px solid #d9d9d9; }
+        .btn-default:hover { border-color: #1890ff; color: #1890ff; }
+
+        .table-panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #fafafa; }
+        th { padding: 12px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tbody tr:hover { background: #f5f9ff; }
+
+        .group-header td { background: #fafbff; }
+        .group-header td:first-child { border-left: 3px solid #1890ff; }
+
+        .sub-row td:first-child { padding-left: 48px; position: relative; }
+        .sub-row td:first-child::before { content: '└─'; position: absolute; left: 24px; color: #bbb; font-size: 14px; }
+        .sub-row td { color: #555; }
+        .sub-row.hidden { display: none; }
+
+        .expand-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; color: #1890ff; font-size: 14px; }
+        .expand-toggle:hover { color: #40a9ff; }
+        .expand-toggle .chevron {
+            display: inline-block; width: 14px; height: 14px; transition: transform 0.2s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231890ff'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+            background-size: contain; background-repeat: no-repeat;
+            transform: rotate(90deg);
+        }
+        .expand-toggle.collapsed .chevron { transform: rotate(0deg); }
+
+        .material-check { cursor: not-allowed; width: 16px; height: 16px; }
+        .material-check:not(:disabled) { cursor: pointer; }
+
+        .ship-qty-input {
+            width: 90px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px;
+            font-size: 14px; text-align: center; outline: none; transition: border-color 0.2s;
+        }
+        .ship-qty-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        .ship-qty-input.invalid { border-color: #ff4d4f; box-shadow: 0 0 0 2px rgba(255,77,79,0.1); }
+
+        .ship-order-btn { padding: 4px 16px; font-size: 13px; }
+
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; line-height: 18px; }
+        .status-completed { background: #f0f0f0; color: #8c8c8c; border: 1px solid #d9d9d9; }
+
+        .table-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #f0f0f0; }
+        .page-size-select { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #666; }
+        .page-size-select select { border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; font-size: 14px; outline: none; }
+        .pagination { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+        .pagination .page-btn { min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background: #fff; }
+        .pagination .page-btn:hover:not(.active):not(:disabled) { border-color: #1890ff; color: #1890ff; }
+        .pagination .page-btn.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .pagination .page-btn:disabled { cursor: not-allowed; color: #d9d9d9; }
+        .pagination .page-info { color: #666; margin-left: 12px; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay.hidden { display: none; }
+        .modal { background: #fff; border-radius: 8px; width: 560px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 16px; font-weight: 500; }
+        .modal-header .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+        .modal-body { padding: 24px; }
+        .modal-body .confirm-hint { font-size: 14px; color: #333; margin-bottom: 12px; }
+        .modal-body .confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fafafa; border-radius: 6px; overflow: hidden; }
+        .modal-body .confirm-table th { padding: 8px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; }
+        .modal-body .confirm-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .modal-body .confirm-table tr:last-child td { border-bottom: none; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+
+        .qty-error { font-size: 11px; color: #ff4d4f; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">供应商物料系统 <span>- 采购订单管理</span></div>
+</div>
+
+<div class="container">
+    <div class="breadcrumb">首页 / 采购订单</div>
+
+    <div class="search-panel">
+        <div class="search-row">
+            <div class="search-item">
+                <label>单据编码：</label>
+                <input type="text" id="searchBillNo" placeholder="请输入单据编码，支持模糊搜索">
+            </div>
+            <div class="search-item">
+                <label>采购日期：</label>
+                <input type="date" id="searchDateFrom">
+                <span style="color:#999">至</span>
+                <input type="date" id="searchDateTo">
+            </div>
+            <button class="btn btn-primary" onclick="doSearch()">查询</button>
+            <button class="btn btn-default" onclick="resetSearch()">重置</button>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:50px;text-align:center">勾选</th>
+                        <th style="width:110px">单据类型</th>
+                        <th style="width:100px">采购日期</th>
+                        <th style="width:180px">单据编码</th>
+                        <th style="width:160px">供应商</th>
+                        <th style="width:120px">物料编码</th>
+                        <th style="width:85px">物料版本</th>
+                        <th style="min-width:160px">物料名称</th>
+                        <th style="width:90px;text-align:right">采购数量</th>
+                        <th style="width:110px;text-align:right">剩余收料数量</th>
+                        <th style="width:110px;text-align:center">发货数量</th>
+                        <th style="width:90px;text-align:center">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <!-- ====== 订单 1: POCG20240315001 (10条物料) ====== -->
+                    <tr class="group-header" data-group="1">
+                        <td style="text-align:center"><input type="checkbox" class="group-check" data-group="1" onchange="onGroupCheck(1)"></td>
+                        <td>采购订单</td>
+                        <td>2024-03-15</td>
+                        <td>
+                            <span class="expand-toggle" data-group="1" onclick="toggleGroup(1)">
+                                <span class="chevron"></span> POCG20240315001
+                            </span>
+                        </td>
+                        <td>东莞精密制造有限公司</td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td style="text-align:center">
+                            <button class="btn btn-primary ship-order-btn" data-group="1" disabled onclick="confirmShip(1)">发货</button>
+                        </td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-001" data-max="200">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-001</td><td>V2.0</td><td>精密齿轮组件</td>
+                        <td style="text-align:right">500</td><td style="text-align:right">200</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="tel" class="ship-qty-input" data-group="1" data-max="200" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)" onkeydown="if(event.key==='.'||event.key==='e'||event.key==='E')event.preventDefault()">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-002" data-max="150">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-002</td><td>V1.5</td><td>传动轴配件</td>
+                        <td style="text-align:right">300</td><td style="text-align:right">150</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="150" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-003" data-max="80">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-003</td><td>V1.0</td><td>减速器外壳</td>
+                        <td style="text-align:right">150</td><td style="text-align:right">80</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="80" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-004" data-max="1200">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-004</td><td>V3.0</td><td>定位销钉 M8×40</td>
+                        <td style="text-align:right">2000</td><td style="text-align:right">1200</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="1200" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-005" data-max="500">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-005</td><td>V2.1</td><td>密封圈组件（氟橡胶）</td>
+                        <td style="text-align:right">800</td><td style="text-align:right">500</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="500" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-006" data-max="400">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-006</td><td>V1.0</td><td>联轴器弹性体</td>
+                        <td style="text-align:right">400</td><td style="text-align:right">400</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="400" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-007" data-max="60">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-007</td><td>V2.0</td><td>电机安装支架</td>
+                        <td style="text-align:right">100</td><td style="text-align:right">60</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="60" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-008" data-max="100">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-008</td><td>V1.3</td><td>散热片总成（铝合金）</td>
+                        <td style="text-align:right">250</td><td style="text-align:right">100</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="100" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-009" data-max="350">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-009</td><td>V1.0</td><td>传感器安装座</td>
+                        <td style="text-align:right">600</td><td style="text-align:right">350</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="350" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="1" data-material="MAT-2024-010" data-max="3800">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="1" disabled onchange="onCheckChange(1)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-010</td><td>V2.2</td><td>线束固定卡扣</td>
+                        <td style="text-align:right">5000</td><td style="text-align:right">3800</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="1" data-max="3800" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 1)">
+                        </td>
+                        <td></td>
+                    </tr>
+
+                    <!-- ====== 订单 2: POCG20240318003 (3条物料) ====== -->
+                    <tr class="group-header" data-group="2">
+                        <td style="text-align:center"><input type="checkbox" class="group-check" data-group="2" onchange="onGroupCheck(2)"></td>
+                        <td>采购订单</td>
+                        <td>2024-03-18</td>
+                        <td>
+                            <span class="expand-toggle" data-group="2" onclick="toggleGroup(2)">
+                                <span class="chevron"></span> POCG20240318003
+                            </span>
+                        </td>
+                        <td>苏州精工零部件有限公司</td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td style="text-align:center">
+                            <button class="btn btn-primary ship-order-btn" data-group="2" disabled onclick="confirmShip(2)">发货</button>
+                        </td>
+                    </tr>
+                    <tr class="sub-row" data-group="2" data-material="MAT-2024-015" data-max="800">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="2" disabled onchange="onCheckChange(2)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-015</td><td>V3.1</td><td>液压缸密封套件</td>
+                        <td style="text-align:right">1000</td><td style="text-align:right">800</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="2" data-max="800" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 2)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="2" data-material="MAT-2024-016" data-max="400">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="2" disabled onchange="onCheckChange(2)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-016</td><td>V2.0</td><td>液压缸活塞组件</td>
+                        <td style="text-align:right">600</td><td style="text-align:right">400</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="2" data-max="400" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 2)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="2" data-material="MAT-2024-017" data-max="200">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="2" disabled onchange="onCheckChange(2)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-017</td><td>V1.0</td><td>液压缸底座</td>
+                        <td style="text-align:right">200</td><td style="text-align:right">200</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="2" data-max="200" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 2)">
+                        </td>
+                        <td></td>
+                    </tr>
+
+                    <!-- ====== 订单 4: POCG20240322012 (2条物料) ====== -->
+                    <tr class="group-header" data-group="4">
+                        <td style="text-align:center"><input type="checkbox" class="group-check" data-group="4" onchange="onGroupCheck(4)"></td>
+                        <td>采购订单</td>
+                        <td>2024-03-22</td>
+                        <td>
+                            <span class="expand-toggle" data-group="4" onclick="toggleGroup(4)">
+                                <span class="chevron"></span> POCG20240322012
+                            </span>
+                        </td>
+                        <td>宁波万通标准件有限公司</td>
+                        <td></td><td></td><td></td><td></td><td></td><td></td>
+                        <td style="text-align:center">
+                            <button class="btn btn-primary ship-order-btn" data-group="4" disabled onclick="confirmShip(4)">发货</button>
+                        </td>
+                    </tr>
+                    <tr class="sub-row" data-group="4" data-material="MAT-2024-045" data-max="6500">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="4" disabled onchange="onCheckChange(4)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-045</td><td>V2.3</td><td>高强度螺栓 M16×80</td>
+                        <td style="text-align:right">10000</td><td style="text-align:right">6500</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="4" data-max="6500" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 4)">
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr class="sub-row" data-group="4" data-material="MAT-2024-046" data-max="7200">
+                        <td style="text-align:center"><input type="checkbox" class="material-check" data-group="4" disabled onchange="onCheckChange(4)"></td>
+                        <td></td><td></td><td></td><td></td>
+                        <td>MAT-2024-046</td><td>V2.3</td><td>高强度螺母 M16</td>
+                        <td style="text-align:right">10000</td><td style="text-align:right">7200</td>
+                        <td style="text-align:center;position:relative">
+                            <input type="number" class="ship-qty-input" data-group="4" data-max="7200" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this, 4)">
+                        </td>
+                        <td></td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <div class="page-size-select">
+                <span>每页显示</span>
+                <select id="pageSize">
+                    <option value="10">10</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span>条</span>
+                <span style="margin-left:16px;color:#999">共 <strong style="color:#333">3</strong> 个订单，<strong style="color:#333">15</strong> 条物料</span>
+            </div>
+            <div class="pagination">
+                <span class="page-btn" disabled>&laquo;</span>
+                <span class="page-btn active">1</span>
+                <span class="page-btn">2</span>
+                <span class="page-btn">&raquo;</span>
+                <span class="page-info">1 / 2 页</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 确认发货弹窗 -->
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>确认发货</h3>
+            <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-hint">以下物料将提交发货，请确认：</div>
+            <table class="confirm-table">
+                <thead>
+                    <tr>
+                        <th>物料编码</th>
+                        <th>物料名称</th>
+                        <th style="text-align:right">剩余收料数量</th>
+                        <th style="text-align:right">发货数量</th>
+                    </tr>
+                </thead>
+                <tbody id="confirmList"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-default" onclick="closeConfirmModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitAllShip()">确认提交</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== 展开/收起 =====
+function toggleGroup(groupId) {
+    const subRows = document.querySelectorAll(`.sub-row[data-group="${groupId}"]`);
+    const toggle = document.querySelector(`.expand-toggle[data-group="${groupId}"]`);
+    if (!subRows.length || !toggle) return;
+    const isCollapsed = toggle.classList.contains('collapsed');
+    if (isCollapsed) {
+        subRows.forEach(r => r.classList.remove('hidden'));
+        toggle.classList.remove('collapsed');
+    } else {
+        subRows.forEach(r => r.classList.add('hidden'));
+        toggle.classList.add('collapsed');
+    }
+}
+
+/**
+ * 发货数量输入事件
+ * - 输入 > 0 且 <= 最大值：启用勾选框，清除错误
+ * - 输入 0 或空：禁用勾选框，取消勾选
+ * - 输入超过最大值：标红提示
+ */
+function onQtyInput(input, groupId) {
+    const row = input.closest('.sub-row');
+    const cb = row.querySelector('.material-check');
+    const maxQty = parseInt(input.dataset.max);
+    const val = input.value;
+
+    // 清除旧错误
+    const oldErr = row.querySelector('.qty-error');
+    if (oldErr) oldErr.remove();
+    input.classList.remove('invalid');
+
+    if (!val || parseInt(val) <= 0 || isNaN(parseInt(val))) {
+        cb.disabled = true;
+        cb.checked = false;
+        syncGroupCheck(groupId);
+        updateShipButton(groupId);
+        return;
+    }
+
+    // 禁止小数
+    if (val.includes('.')) {
+        input.classList.add('invalid');
+        const err = document.createElement('div');
+        err.className = 'qty-error';
+        err.textContent = '请输入正整数';
+        row.querySelector('td[style*="position"]').appendChild(err);
+        cb.disabled = true;
+        cb.checked = false;
+        syncGroupCheck(groupId);
+        updateShipButton(groupId);
+        return;
+    }
+
+    const numVal = parseInt(val);
+    if (numVal > maxQty) {
+        input.classList.add('invalid');
+        const err = document.createElement('div');
+        err.className = 'qty-error';
+        err.textContent = `不能超过 ${maxQty.toLocaleString()}`;
+        row.querySelector('td[style*="position"]').appendChild(err);
+        cb.disabled = true;
+        cb.checked = false;
+        syncGroupCheck(groupId);
+        updateShipButton(groupId);
+    } else {
+        // 合法值 → 自动勾选并启用
+        cb.disabled = false;
+        cb.checked = true;
+    }
+
+    updateShipButton(groupId);
+}
+
+/**
+ * 同步单据头勾选状态
+ */
+function syncGroupCheck(groupId) {
+    const groupCheck = document.querySelector(`.group-check[data-group="${groupId}"]`);
+    if (!groupCheck) return;
+    const checks = document.querySelectorAll(`.material-check[data-group="${groupId}"]`);
+    let allChecked = true;
+    checks.forEach(cb => {
+        const row = cb.closest('.sub-row');
+        const maxQty = parseInt(row.dataset.max);
+        if (maxQty > 0 && !cb.checked) allChecked = false;
+    });
+    groupCheck.checked = allChecked;
+}
+
+/**
+ * 单据头批量勾选：勾选该行后下方物料全部勾选并自动填充发货数量为剩余收料数量
+ */
+function onGroupCheck(groupId) {
+    const groupCheck = document.querySelector(`.group-check[data-group="${groupId}"]`);
+    const checked = groupCheck.checked;
+
+    const checks = document.querySelectorAll(`.material-check[data-group="${groupId}"]`);
+    checks.forEach(cb => {
+        const row = cb.closest('.sub-row');
+        const input = row.querySelector('.ship-qty-input');
+        const maxQty = parseInt(input.dataset.max);
+
+        if (checked && maxQty > 0) {
+            // 勾选：启用输入框，填写剩余收料数量，自动勾选
+            input.value = maxQty;
+            cb.disabled = false;
+            cb.checked = true;
+            input.classList.remove('invalid');
+            // 清除旧错误提示
+            const oldErr = row.querySelector('.qty-error');
+            if (oldErr) oldErr.remove();
+        } else {
+            // 取消：清空并禁用
+            input.value = '';
+            cb.disabled = true;
+            cb.checked = false;
+            input.classList.remove('invalid');
+            const oldErr = row.querySelector('.qty-error');
+            if (oldErr) oldErr.remove();
+        }
+    });
+
+    // 同步子行勾选框状态：如果有剩余收料为0的行，group-check 设为半选状态
+    if (checked) {
+        const zeroRows = document.querySelectorAll(`.sub-row[data-group="${groupId}"][data-max="0"]`);
+        if (zeroRows.length > 0) {
+            // 有部分物料不可发货（剩余为0），group-check 保持勾选但不影响那些行
+        }
+    }
+
+    updateShipButton(groupId);
+}
+
+/**
+ * 勾选状态变化
+ * 只要该订单有任一勾选，发货按钮即可用
+ */
+function onCheckChange(groupId) {
+    syncGroupCheck(groupId);
+    updateShipButton(groupId);
+}
+
+function updateShipButton(groupId) {
+    const btn = document.querySelector(`.ship-order-btn[data-group="${groupId}"]`);
+    if (!btn) return;
+    const checks = document.querySelectorAll(`.material-check[data-group="${groupId}"]`);
+    let hasChecked = false;
+    checks.forEach(cb => { if (cb.checked) hasChecked = true; });
+    btn.disabled = !hasChecked;
+}
+
+// ===== 确认发货弹窗 =====
+let currentShipGroup = null;
+
+function confirmShip(groupId) {
+    currentShipGroup = groupId;
+    const tbody = document.getElementById('confirmList');
+    tbody.innerHTML = '';
+
+    const headerRow = document.querySelector(`.group-header[data-group="${groupId}"]`);
+    const billNo = headerRow.querySelector('td:nth-child(4)').textContent.trim();
+
+    // 更新弹窗提示文字
+    const hint = document.querySelector('.confirm-hint');
+    hint.textContent = `单据编码为 ${billNo} 的物料即将发货，请确认：`;
+
+    const checks = document.querySelectorAll(`.material-check[data-group="${groupId}"]`);
+    checks.forEach(cb => {
+        if (!cb.checked) return;
+        const row = cb.closest('.sub-row');
+        const input = row.querySelector('.ship-qty-input');
+        const val = parseInt(input.value);
+        if (isNaN(val) || val <= 0) return;
+
+        const code = row.querySelector('td:nth-child(6)').textContent;
+        const name = row.querySelector('td:nth-child(8)').textContent;
+        const maxQty = parseInt(input.dataset.max);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${code}</td><td>${name}</td><td style="text-align:right">${maxQty.toLocaleString()}</td><td style="text-align:right">${val.toLocaleString()}</td>`;
+        tbody.appendChild(tr);
+    });
+
+    if (!tbody.children.length) {
+        alert('请先勾选物料');
+        return;
+    }
+
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    currentShipGroup = null;
+}
+
+function submitAllShip() {
+    const headerRow = document.querySelector(`.group-header[data-group="${currentShipGroup}"]`);
+    const billNo = headerRow.querySelector('td:nth-child(4)').textContent.trim();
+    alert(`发货提交成功！\n\n单据编码：${billNo}`);
+    closeConfirmModal();
+}
+
+function doSearch() { alert('执行查询（原型演示）'); }
+function resetSearch() {
+    document.getElementById('searchBillNo').value = '';
+    document.getElementById('searchDateFrom').value = '';
+    document.getElementById('searchDateTo').value = '';
+}
+
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirmModal();
+});
+</script>
+
+</body>
+</html>

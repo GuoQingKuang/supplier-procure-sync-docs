@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采购订单详情 - 供应商物料系统（V3）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; }
+        .navbar { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; height: 48px; display: flex; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .navbar .logo { font-size: 16px; font-weight: 600; color: #1890ff; }
+        .navbar .logo span { color: #333; font-weight: 400; margin-left: 8px; font-size: 13px; }
+        .navbar .back-link { margin-left: auto; color: #1890ff; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .navbar .back-link:hover { text-decoration: underline; }
+        .container { max-width: 1400px; margin: 24px auto; padding: 0 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 12px; }
+        .breadcrumb a { color: #1890ff; text-decoration: none; cursor: pointer; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .page-title { font-size: 18px; font-weight: 500; margin-bottom: 16px; }
+        .info-card { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 24px; }
+        .info-item label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
+        .info-item .value { font-size: 14px; color: #333; }
+        .material-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        .material-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #f0f0f0; }
+        .material-header .title { font-size: 16px; font-weight: 500; }
+        .material-header .count { font-size: 13px; color: #999; font-weight: 400; margin-left: 8px; }
+        .btn { padding: 6px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-primary:disabled { background: #d9d9d9; cursor: not-allowed; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #fafafa; }
+        th { padding: 12px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tbody tr:hover { background: #f5f9ff; }
+        .group-alt td { background: #fafbff; }
+        tbody tr:hover td { background: #f5f9ff !important; }
+        .bill-no-link { color: #1890ff; cursor: pointer; text-decoration: none; }
+        .bill-no-link:hover { text-decoration: underline; }
+        .material-check { cursor: not-allowed; width: 16px; height: 16px; }
+        .material-check:not(:disabled) { cursor: pointer; }
+        .ship-qty-input { width: 90px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; font-size: 14px; text-align: center; outline: none; }
+        .ship-qty-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        .ship-qty-input.invalid { border-color: #ff4d4f; }
+        .history-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; margin-top: 16px; }
+        .history-header { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; }
+        .history-header .title { font-size: 16px; font-weight: 500; }
+        .history-header .count { font-size: 13px; color: #999; font-weight: 400; margin-left: 8px; }
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; line-height: 18px; }
+        .status-done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-accepted { background: #f0f5ff; color: #2f54eb; border: 1px solid #adc6ff; }
+        .status-void { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay.hidden { display: none; }
+        .modal { background: #fff; border-radius: 8px; width: 560px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 16px; font-weight: 500; }
+        .modal-header .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+        .modal-body { padding: 24px; }
+        .modal-body .confirm-hint { font-size: 14px; color: #333; margin-bottom: 12px; }
+        .modal-body .confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fafafa; border-radius: 6px; overflow: hidden; }
+        .modal-body .confirm-table th { padding: 8px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; }
+        .modal-body .confirm-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .modal-body .confirm-table tr:last-child td { border-bottom: none; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+        .qty-error { font-size: 11px; color: #ff4d4f; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">供应商物料系统 <span>- 采购订单详情</span></div>
+    <a class="back-link" href="演示入口.html">&larr; 返回首页</a>
+</div>
+
+<div class="container">
+    <div class="breadcrumb">
+        <a href="演示入口.html">首页</a> / <a href="演示入口.html">采购订单</a> / <span id="breadcrumbBillNo">采购订单详情</span>
+    </div>
+
+    <div class="page-title" id="pageTitle">加载中...</div>
+
+    <div class="info-card">
+        <div class="info-grid">
+            <div class="info-item"><label>单据类型</label><div class="value">采购订单</div></div>
+            <div class="info-item"><label>采购日期</label><div class="value" id="infoDate">—</div></div>
+            <div class="info-item"><label>单据编码</label><div class="value" id="infoBillNo">—</div></div>
+            <div class="info-item"><label>供应商</label><div class="value" id="infoSupplier">—</div></div>
+        </div>
+    </div>
+
+    <div class="material-section">
+        <div class="material-header">
+            <div>
+                <span class="title">物料明细</span>
+                <span class="count" id="materialCount">（共 0 项）</span>
+            </div>
+            <button class="btn btn-primary" id="shipBtn" disabled onclick="confirmShip()">发货</button>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:50px;text-align:center"><input type="checkbox" id="checkAll" style="cursor:pointer;width:16px;height:16px" onclick="onCheckAll()" title="一键全选"></th>
+                        <th style="width:60px;text-align:center">序号</th>
+                        <th style="width:120px">物料编码</th>
+                        <th style="width:85px">物料版本</th>
+                        <th style="min-width:150px">物料名称</th>
+                        <th style="width:90px;text-align:right">采购数量</th>
+                        <th style="width:110px;text-align:right">剩余收货数量</th>
+                        <th style="width:110px;text-align:center">发货数量</th>
+                    </tr>
+                </thead>
+                <tbody id="materialTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="history-section">
+        <div class="history-header">
+            <span class="title">历史发货记录</span>
+            <span class="count">（共 1 单）</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:160px">送料通知单号</th>
+                    <th style="width:100px">发货日期</th>
+                    <th style="width:80px;text-align:center">物料项数</th>
+                    <th style="width:90px;text-align:right">发货总数</th>
+                    <th style="width:80px;text-align:center">状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><a class="bill-no-link" onclick="goToShipNotice('SN20240320001')">SN20240320001</a></td>
+                    <td>2024-03-20</td>
+                    <td style="text-align:center">3</td>
+                    <td style="text-align:right">800</td>
+                    <td style="text-align:center"><span class="status-tag status-done">已发货</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header"><h3>确认发货</h3><button class="close-btn" onclick="closeConfirmModal()">&times;</button></div>
+        <div class="modal-body">
+            <div class="confirm-hint" id="confirmHint">以下物料将提交发货，请确认：</div>
+            <table class="confirm-table">
+                <thead><tr><th>物料编码</th><th>物料名称</th><th style="text-align:right">剩余收货数量</th><th style="text-align:right">发货数量</th></tr></thead>
+                <tbody id="confirmList"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-default" onclick="closeConfirmModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitShip()">确认提交</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // === 数据 ===
+    var orderData = {
+        'POCG20240315001': { date: '2024-03-15', supplier: '东莞精密制造有限公司', materials: [
+            { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', qty: 500, remain: 200 },
+            { code: 'MAT-2024-002', version: 'V1.5', name: '传动轴配件', qty: 300, remain: 150 },
+            { code: 'MAT-2024-003', version: 'V1.0', name: '减速器外壳', qty: 150, remain: 80 },
+            { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', qty: 2000, remain: 1200 },
+            { code: 'MAT-2024-005', version: 'V2.1', name: '密封圈组件（氟橡胶）', qty: 800, remain: 500 },
+            { code: 'MAT-2024-006', version: 'V1.0', name: '联轴器弹性体', qty: 400, remain: 400 },
+            { code: 'MAT-2024-007', version: 'V2.0', name: '电机安装支架', qty: 100, remain: 60 },
+            { code: 'MAT-2024-008', version: 'V1.3', name: '散热片总成（铝合金）', qty: 250, remain: 100 },
+            { code: 'MAT-2024-009', version: 'V1.0', name: '传感器安装座', qty: 600, remain: 350 },
+            { code: 'MAT-2024-010', version: 'V2.2', name: '线束固定卡扣', qty: 5000, remain: 3800 },
+        ]},
+        'POCG20240318003': { date: '2024-03-18', supplier: '苏州精工零部件有限公司', materials: [
+            { code: 'MAT-2024-015', version: 'V3.1', name: '液压缸密封套件', qty: 1000, remain: 800 },
+            { code: 'MAT-2024-016', version: 'V2.0', name: '液压缸活塞组件', qty: 600, remain: 400 },
+            { code: 'MAT-2024-017', version: 'V1.0', name: '液压缸底座', qty: 200, remain: 200 },
+        ]},
+        'POCG20240322012': { date: '2024-03-22', supplier: '宁波万通标准件有限公司', materials: [
+            { code: 'MAT-2024-045', version: 'V2.3', name: '高强度螺栓 M16×80', qty: 10000, remain: 6500 },
+            { code: 'MAT-2024-046', version: 'V2.3', name: '高强度螺母 M16', qty: 10000, remain: 7200 },
+        ]},
+    };
+
+    // === 获取单据编码（优先 URL 参数，其次 localStorage，最后默认） ===
+    var billNo = 'POCG20240315001';
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('billNo')) billNo = params.get('billNo');
+    } catch (e) {}
+    if (billNo === 'POCG20240315001') {
+        try {
+            var stored = localStorage.getItem('currentBillNo');
+            if (stored && orderData[stored]) billNo = stored;
+        } catch (e) {}
+    }
+
+    var order = orderData[billNo] || orderData['POCG20240315001'];
+
+    // === 更新页面信息 ===
+    document.getElementById('pageTitle').textContent = billNo;
+    document.getElementById('infoBillNo').textContent = billNo;
+    document.getElementById('breadcrumbBillNo').textContent = billNo;
+    document.getElementById('infoDate').textContent = order.date;
+    document.getElementById('infoSupplier').textContent = order.supplier;
+    document.getElementById('materialCount').textContent = '（共 ' + order.materials.length + ' 项）';
+
+    console.log('[detail] billNo=' + billNo + ', materials=' + order.materials.length);
+
+    // === 渲染物料表格 ===
+    var tbody = document.getElementById('materialTableBody');
+    var html = '';
+    for (var i = 0; i < order.materials.length; i++) {
+        var m = order.materials[i];
+        var altClass = (i % 2 === 0) ? ' class="group-alt"' : '';
+        html += '<tr' + altClass + '>';
+        html += '<td style="text-align:center"><input type="checkbox" class="material-check" disabled onchange="onCheckChange()"></td>';
+        html += '<td style="text-align:center;color:#999">' + (i + 1) + '</td>';
+        html += '<td>' + m.code + '</td>';
+        html += '<td>' + m.version + '</td>';
+        html += '<td>' + m.name + '</td>';
+        html += '<td style="text-align:right">' + m.qty.toLocaleString() + '</td>';
+        html += '<td style="text-align:right">' + m.remain.toLocaleString() + '</td>';
+        html += '<td style="text-align:center;position:relative"><input type="tel" class="ship-qty-input" data-max="' + m.remain + '" min="0" step="1" placeholder="请输入" oninput="onQtyInput(this)" onkeydown="if(event.key===\'.\'||event.key===\'e\'||event.key===\'E\')event.preventDefault()"></td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+    console.log('[detail] table rendered, tbody rows=' + tbody.children.length);
+
+    // === 发货数量输入处理 ===
+    window.onQtyInput = function(input) {
+        var row = input.closest('tr');
+        var cb = row.querySelector('.material-check');
+        var maxQty = parseInt(input.dataset.max);
+        var val = input.value;
+        var oldErr = row.querySelector('.qty-error');
+        if (oldErr) oldErr.remove();
+        input.classList.remove('invalid');
+
+        if (!val || parseInt(val) <= 0 || isNaN(parseInt(val))) {
+            cb.disabled = true;
+            cb.checked = false;
+            updateShipBtn();
+            return;
+        }
+        if (val.indexOf('.') !== -1) {
+            input.classList.add('invalid');
+            var err = document.createElement('div');
+            err.className = 'qty-error';
+            err.textContent = '请输入正整数';
+            row.querySelector('td[style*="position"]').appendChild(err);
+            cb.disabled = true;
+            cb.checked = false;
+            updateShipBtn();
+            return;
+        }
+        var numVal = parseInt(val);
+        if (numVal > maxQty) {
+            input.classList.add('invalid');
+            var err = document.createElement('div');
+            err.className = 'qty-error';
+            err.textContent = '不能超过 ' + maxQty.toLocaleString();
+            row.querySelector('td[style*="position"]').appendChild(err);
+            cb.disabled = true;
+            cb.checked = false;
+        } else {
+            cb.disabled = false;
+            cb.checked = true;
+        }
+        updateShipBtn();
+    };
+
+    // === 全选/取消全选 ===
+    window.onCheckAll = function() {
+        var checked = document.getElementById('checkAll').checked;
+        var allCb = document.querySelectorAll('.material-check');
+        for (var j = 0; j < allCb.length; j++) {
+            var row = allCb[j].closest('tr');
+            var input = row.querySelector('.ship-qty-input');
+            var maxQty = parseInt(input.dataset.max);
+            if (checked && maxQty > 0) {
+                // 自动填充剩余数量作为发货数量
+                input.value = maxQty;
+                allCb[j].disabled = false;
+                allCb[j].checked = true;
+                input.classList.remove('invalid');
+                var oldErr = row.querySelector('.qty-error');
+                if (oldErr) oldErr.remove();
+            } else {
+                input.value = '';
+                allCb[j].disabled = true;
+                allCb[j].checked = false;
+                input.classList.remove('invalid');
+                var oldErr = row.querySelector('.qty-error');
+                if (oldErr) oldErr.remove();
+            }
+        }
+        updateShipBtn();
+    };
+
+    // === 勾选变化 ===
+    window.onCheckChange = function() {
+        syncCheckAll();
+        updateShipBtn();
+    };
+
+    // === 同步全选按钮状态 ===
+    function syncCheckAll() {
+        var checkAll = document.getElementById('checkAll');
+        var allCb = document.querySelectorAll('.material-check');
+        var allChecked = true;
+        for (var j = 0; j < allCb.length; j++) {
+            if (!allCb[j].checked) { allChecked = false; break; }
+        }
+        checkAll.checked = allChecked;
+    }
+
+    // === 更新发货按钮 ===
+    function updateShipBtn() {
+        var btn = document.getElementById('shipBtn');
+        var hasChecked = false;
+        var allCb = document.querySelectorAll('.material-check');
+        for (var j = 0; j < allCb.length; j++) {
+            if (allCb[j].checked) hasChecked = true;
+        }
+        btn.disabled = !hasChecked;
+    }
+
+    // === 确认发货 ===
+    window.confirmShip = function() {
+        var confirmTbody = document.getElementById('confirmList');
+        confirmTbody.innerHTML = '';
+        var allCb = document.querySelectorAll('.material-check:checked');
+        for (var j = 0; j < allCb.length; j++) {
+            var row = allCb[j].closest('tr');
+            var input = row.querySelector('.ship-qty-input');
+            var val = parseInt(input.value);
+            if (isNaN(val) || val <= 0) continue;
+            var code = row.querySelector('td:nth-child(3)').textContent;
+            var name = row.querySelector('td:nth-child(5)').textContent;
+            var maxQty = parseInt(input.dataset.max);
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + code + '</td><td>' + name + '</td><td style="text-align:right">' + maxQty.toLocaleString() + '</td><td style="text-align:right">' + val.toLocaleString() + '</td>';
+            confirmTbody.appendChild(tr);
+        }
+        if (!confirmTbody.children.length) {
+            alert('请先勾选物料并填写发货数量');
+            return;
+        }
+        document.getElementById('confirmHint').textContent = '以下单据编码为' + billNo + '的物料将提交发货，请确认：';
+        document.getElementById('confirmModal').classList.remove('hidden');
+    };
+
+    // === 关闭确认弹窗 ===
+    window.closeConfirmModal = function() {
+        document.getElementById('confirmModal').classList.add('hidden');
+    };
+
+    // === 提交发货 ===
+    window.submitShip = function() {
+        alert('发货提交成功！');
+        window.closeConfirmModal();
+    };
+
+    // === 跳转到送料通知单详情 ===
+    window.goToShipNotice = function(snNo) {
+        try { localStorage.setItem('currentSnNo', snNo); } catch(e) {}
+        window.location.href = 'ship-notice-detail-v3.html?snNo=' + snNo;
+    };
+})();
+</script>
+
+</body>
+</html>

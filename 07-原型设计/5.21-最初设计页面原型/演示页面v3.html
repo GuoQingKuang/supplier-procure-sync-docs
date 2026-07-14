@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采购订单列表 - 供应商物料系统（V2）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; }
+        .navbar { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; height: 48px; display: flex; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .navbar .logo { font-size: 16px; font-weight: 600; color: #1890ff; }
+        .navbar .logo span { color: #333; font-weight: 400; margin-left: 8px; font-size: 13px; }
+        .container { max-width: 1500px; margin: 24px auto; padding: 0 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 8px; }
+        .search-panel { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .search-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .search-item { display: flex; align-items: center; gap: 8px; }
+        .search-item label { font-size: 14px; color: #666; white-space: nowrap; }
+        .search-item input[type="text"], .search-item input[type="date"] { border: 1px solid #d9d9d9; border-radius: 4px; padding: 6px 12px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .search-item input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        .search-item input[type="text"] { width: 160px; }
+        .search-item input[type="date"] { width: 140px; }
+        .btn { padding: 6px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-primary:disabled { background: #d9d9d9; cursor: not-allowed; }
+        .btn-default { background: #fff; color: #666; border: 1px solid #d9d9d9; }
+        .btn-default:hover { border-color: #1890ff; color: #1890ff; }
+        .table-panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #fafafa; }
+        th { padding: 12px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; white-space: nowrap; }
+        tbody tr:hover { background: #f5f9ff; }
+        .group-alt td { background: #fafbff; }
+        tbody tr:hover td { background: #f5f9ff !important; }
+        .material-check { cursor: not-allowed; width: 16px; height: 16px; }
+        .material-check:not(:disabled) { cursor: pointer; }
+        .ship-qty-input { width: 90px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; font-size: 14px; text-align: center; outline: none; transition: border-color 0.2s; }
+        .ship-qty-input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,0.1); }
+        .ship-qty-input.invalid { border-color: #ff4d4f; box-shadow: 0 0 0 2px rgba(255,77,79,0.1); }
+        .table-footer { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid #f0f0f0; }
+        .page-size-select { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #666; }
+        .page-size-select select { border: 1px solid #d9d9d9; border-radius: 4px; padding: 4px 8px; font-size: 14px; outline: none; }
+        .pagination { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+        .pagination .page-btn { min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background: #fff; }
+        .pagination .page-btn:hover:not(.active):not(:disabled) { border-color: #1890ff; color: #1890ff; }
+        .pagination .page-btn.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .pagination .page-btn:disabled { cursor: not-allowed; color: #d9d9d9; }
+        .pagination .page-info { color: #666; margin-left: 12px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 16px; }
+        .tab-btn { padding: 10px 24px; background: #fff; border: 1px solid #d9d9d9; font-size: 14px; color: #666; cursor: pointer; transition: all 0.2s; }
+        .tab-btn:first-child { border-radius: 4px 0 0 4px; }
+        .tab-btn:last-child { border-radius: 0 4px 4px 0; }
+        .tab-btn.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .tab-btn:hover:not(.active) { border-color: #1890ff; color: #1890ff; }
+        .hidden { display: none !important; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay.hidden { display: none; }
+        .modal { background: #fff; border-radius: 8px; width: 720px; max-width: 90vw; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 16px; font-weight: 500; }
+        .modal-header .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+        .modal-body { padding: 24px; }
+        .modal-body .confirm-hint { font-size: 14px; color: #333; margin-bottom: 12px; }
+        .modal-body .confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fafafa; border-radius: 6px; overflow: hidden; }
+        .modal-body .confirm-table th { padding: 8px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; }
+        .modal-body .confirm-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .modal-body .confirm-table tr:last-child td { border-bottom: none; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+        .qty-error { font-size: 11px; color: #ff4d4f; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; line-height: 18px; }
+        .status-done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-void { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">供应商物料系统 <span>- 采购订单管理</span></div>
+</div>
+
+<div class="container">
+    <div class="breadcrumb">首页 / 采购订单</div>
+
+    <!-- Tab 切换 -->
+    <div class="tabs">
+        <button class="tab-btn active" id="tabOrder" onclick="switchTab('order')">采购订单</button>
+        <button class="tab-btn" id="tabNotice" onclick="switchTab('notice')">送料通知单</button>
+    </div>
+
+    <!-- 采购订单面板 -->
+    <div id="orderPanel">
+    <div class="search-panel">
+        <div class="search-row">
+            <div class="search-item">
+                <label>单据编码：</label>
+                <input type="text" id="searchBillNo" placeholder="支持模糊搜索">
+            </div>
+            <div class="search-item">
+                <label>物料编码：</label>
+                <input type="text" id="searchMaterial" placeholder="支持模糊搜索">
+            </div>
+            <div class="search-item">
+                <label>采购日期：</label>
+                <input type="date" id="searchDateFrom">
+                <span style="color:#999">至</span>
+                <input type="date" id="searchDateTo">
+            </div>
+            <button class="btn btn-primary" onclick="doSearch()">查询</button>
+            <button class="btn btn-default" onclick="resetSearch()">重置</button>
+            <button class="btn btn-primary" id="topShipBtn" disabled onclick="confirmAllShip()" style="margin-left:auto">发货</button>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:50px;text-align:center"><input type="checkbox" id="selectAll" style="cursor:pointer;width:16px;height:16px" onclick="onSelectAll()" title="勾选当页全部"></th>
+                        <th style="width:100px">单据类型</th>
+                        <th style="width:95px">采购日期</th>
+                        <th style="width:170px">单据编码</th>
+                        <th style="width:150px">供应商</th>
+                        <th style="width:120px">物料编码</th>
+                        <th style="width:80px">物料版本</th>
+                        <th style="min-width:150px">物料名称</th>
+                        <th style="width:100px">规格</th>
+                        <th style="width:85px;text-align:right">采购数量</th>
+                        <th style="width:105px;text-align:right">剩余收料数量</th>
+                        <th style="width:100px;text-align:center">发货数量</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <div class="page-size-select">
+                <span>每页显示</span>
+                <select id="pageSize" onchange="changePageSize()">
+                    <option value="10">10</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span>条</span>
+                <span id="totalInfo" style="margin-left:16px;color:#999"></span>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+    </div><!-- end orderPanel -->
+
+    <!-- 送料通知单面板 -->
+    <div id="noticePanel" class="hidden">
+    <div class="search-panel">
+        <div class="search-row">
+            <div class="search-item">
+                <label>送料通知单号：</label>
+                <input type="text" id="searchNoticeNo" placeholder="支持模糊搜索">
+            </div>
+            <div class="search-item">
+                <label>物料编码：</label>
+                <input type="text" id="searchNoticeMaterial" placeholder="支持模糊搜索">
+            </div>
+            <div class="search-item">
+                <label>发货时间：</label>
+                <input type="date" id="searchNoticeDateFrom">
+                <span style="color:#999">至</span>
+                <input type="date" id="searchNoticeDateTo">
+            </div>
+            <button class="btn btn-primary" onclick="doNoticeSearch()">查询</button>
+            <button class="btn btn-default" onclick="resetNoticeSearch()">重置</button>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:110px">单据类型</th>
+                        <th style="width:160px">送料通知单号</th>
+                        <th style="width:120px">物料编码</th>
+                        <th style="width:80px">物料版本</th>
+                        <th style="min-width:150px">物料名称</th>
+                        <th style="width:100px">规格</th>
+                        <th style="width:160px">供应商</th>
+                        <th style="width:100px">采购日期</th>
+                        <th style="width:170px">关联单据编码</th>
+                        <th style="width:90px">送料数量</th>
+                        <th style="width:100px">发货时间</th>
+                        <th style="width:80px;text-align:center">状态</th>
+                    </tr>
+                </thead>
+                <tbody id="noticeTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <div class="page-size-select">
+                <span>每页显示</span>
+                <select id="noticePageSize" onchange="changeNoticePageSize()">
+                    <option value="10">10</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span>条</span>
+                <span id="noticeTotalInfo" style="margin-left:16px;color:#999"></span>
+            </div>
+            <div class="pagination" id="noticePagination"></div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- 确认发货弹窗 -->
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>确认发货</h3>
+            <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-hint" id="confirmHint">以下物料将提交发货，请确认：</div>
+            <table class="confirm-table">
+                <thead>
+                    <tr>
+                        <th>所属订单</th>
+                        <th>物料编码</th>
+                        <th>物料名称</th>
+                        <th>规格</th>
+                        <th style="text-align:right">剩余收料数量</th>
+                        <th style="text-align:right">发货数量</th>
+                    </tr>
+                </thead>
+                <tbody id="confirmList"></tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-default" onclick="closeConfirmModal()">取消</button>
+            <button class="btn btn-primary" onclick="submitAllShip()">确认提交</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== 数据 ==========
+var orders = [
+    { billType: '采购订单', date: '2024-03-15', billNo: 'POCG20240315001', supplier: '东莞精密制造有限公司', materials: [
+        { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', spec: 'Φ80×20齿', qty: 500, remain: 200 },
+        { code: 'MAT-2024-002', version: 'V1.5', name: '传动轴配件', spec: 'L=350mm', qty: 300, remain: 150 },
+        { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', spec: 'M8×40', qty: 2000, remain: 1200 },
+        { code: 'MAT-2024-005', version: 'V2.1', name: '密封圈组件（氟橡胶）', spec: 'ID50×OD56×3', qty: 800, remain: 500 },
+        { code: 'MAT-2024-010', version: 'V2.2', name: '线束固定卡扣', spec: '适用线径6-12mm', qty: 5000, remain: 3800 },
+    ]},
+    { billType: '采购订单', date: '2024-03-18', billNo: 'POCG20240318003', supplier: '苏州精工零部件有限公司', materials: [
+        { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', spec: 'Φ80×20齿', qty: 300, remain: 100 },
+        { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', spec: 'M8×40', qty: 1500, remain: 800 },
+        { code: 'MAT-2024-015', version: 'V3.1', name: '液压缸密封套件', spec: 'Φ63×45', qty: 1000, remain: 800 },
+        { code: 'MAT-2024-016', version: 'V2.0', name: '液压缸活塞组件', spec: 'Φ63×200', qty: 600, remain: 400 },
+    ]},
+    { billType: '采购订单', date: '2024-03-22', billNo: 'POCG20240322012', supplier: '宁波万通标准件有限公司', materials: [
+        { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', spec: 'Φ80×20齿', qty: 200, remain: 100 },
+        { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', spec: 'M8×40', qty: 3000, remain: 2000 },
+        { code: 'MAT-2024-045', version: 'V2.3', name: '高强度螺栓 M16×80', spec: 'M16×80 8.8级', qty: 10000, remain: 6500 },
+        { code: 'MAT-2024-046', version: 'V2.3', name: '高强度螺母 M16', spec: 'M16 8级', qty: 10000, remain: 7200 },
+    ]},
+    { billType: '采购订单', date: '2024-03-25', billNo: 'POCG20240325008', supplier: '东莞精密制造有限公司', materials: [
+        { code: 'MAT-2024-002', version: 'V1.5', name: '传动轴配件', spec: 'L=350mm', qty: 400, remain: 250 },
+        { code: 'MAT-2024-005', version: 'V2.1', name: '密封圈组件（氟橡胶）', spec: 'ID50×OD56×3', qty: 600, remain: 300 },
+        { code: 'MAT-2024-010', version: 'V2.2', name: '线束固定卡扣', spec: '适用线径6-12mm', qty: 3000, remain: 2100 },
+    ]},
+];
+
+// 送料通知单数据（体现跨订单合并发货）
+var notices = [
+    { noticeNo: 'SN20240320001', date: '2024-03-20', billNo: 'POCG20240315001', supplier: '东莞精密制造有限公司', materials: [
+        { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', spec: 'Φ80×20齿', shipQty: 100, shipTime: '2024-03-20 10:30', status: '已发货' },
+        { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', spec: 'M8×40', shipQty: 500, shipTime: '2024-03-20 10:30', status: '已发货' },
+        { code: 'MAT-2024-005', version: 'V2.1', name: '密封圈组件（氟橡胶）', spec: 'ID50×OD56×3', shipQty: 200, shipTime: '2024-03-20 10:30', status: '已发货' },
+        { code: 'MAT-2024-010', version: 'V2.2', name: '线束固定卡扣', spec: '适用线径6-12mm', shipQty: 1000, shipTime: '2024-03-20 10:30', status: '已发货' },
+    ]},
+    { noticeNo: 'SN20240318005', date: '2024-03-18', billNo: 'POCG20240318003', supplier: '苏州精工零部件有限公司', materials: [
+        { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', spec: 'Φ80×20齿', shipQty: 50, shipTime: '2024-03-18 14:00', status: '已发货' },
+        { code: 'MAT-2024-015', version: 'V3.1', name: '液压缸密封套件', spec: 'Φ63×45', shipQty: 300, shipTime: '2024-03-18 14:00', status: '已发货' },
+    ]},
+    { noticeNo: 'SN20240315002', date: '2024-03-15', billNo: 'POCG20240315001', supplier: '东莞精密制造有限公司', materials: [
+        { code: 'MAT-2024-002', version: 'V1.5', name: '传动轴配件', spec: 'L=350mm', shipQty: 100, shipTime: '2024-03-15 09:00', status: '已作废' },
+    ]},
+];
+
+// 扁平化送料通知单所有行
+var allNoticeRows = [];
+notices.forEach(function(n) {
+    n.materials.forEach(function(m) {
+        allNoticeRows.push({
+            noticeNo: n.noticeNo,
+            code: m.code,
+            version: m.version,
+            name: m.name,
+            spec: m.spec,
+            supplier: n.supplier,
+            date: n.date,
+            relatedBillNo: n.billNo,
+            shipQty: m.shipQty,
+            shipTime: m.shipTime,
+            status: m.status
+        });
+    });
+});
+
+// ========== 分页状态 ==========
+var currentPage = 1;
+var pageSize = 50;
+var filteredRows = [];
+var noticePage = 1;
+var noticePageSize = 50;
+var filteredNoticeRows = allNoticeRows.slice();
+
+// ========== 跨页勾选状态存储 ==========
+var checkedState = {};
+
+// ========== 扁平化订单行 ==========
+function flattenOrders() {
+    var rows = [];
+    orders.forEach(function(o) {
+        o.materials.forEach(function(m) {
+            rows.push({
+                billType: o.billType,
+                date: o.date,
+                billNo: o.billNo,
+                supplier: o.supplier,
+                code: m.code,
+                version: m.version,
+                name: m.name,
+                spec: m.spec,
+                qty: m.qty,
+                remain: m.remain,
+                rowKey: o.billNo + '|' + m.code
+            });
+        });
+    });
+    return rows;
+}
+
+var allOrderRows = flattenOrders();
+filteredRows = allOrderRows.slice();
+
+// ========== Tab 切换 ==========
+function switchTab(tab) {
+    document.getElementById('tabOrder').classList.toggle('active', tab === 'order');
+    document.getElementById('tabNotice').classList.toggle('active', tab === 'notice');
+    document.getElementById('orderPanel').classList.toggle('hidden', tab !== 'order');
+    document.getElementById('noticePanel').classList.toggle('hidden', tab !== 'notice');
+}
+
+// ========== 采购订单：渲染表格 ==========
+function renderTable() {
+    var tbody = document.getElementById('tableBody');
+    var start = (currentPage - 1) * pageSize;
+    var end = Math.min(start + pageSize, filteredRows.length);
+    var pageRows = filteredRows.slice(start, end);
+
+    if (pageRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:#999">暂无数据</td></tr>';
+    } else {
+        var html = '';
+        var lastBillNo = '';
+        var groupColorIdx = 0;
+        for (var i = 0; i < pageRows.length; i++) {
+            var r = pageRows[i];
+            var globalIdx = start + i;
+            var rowId = 'row_' + globalIdx;
+
+            // 按订单分组背景色
+            if (r.billNo !== lastBillNo) {
+                groupColorIdx = (groupColorIdx + 1) % 2;
+                lastBillNo = r.billNo;
+            }
+            var altClass = groupColorIdx === 0 ? ' class="group-alt"' : '';
+
+            // 恢复勾选状态（用业务唯一标识）
+            var state = checkedState[r.rowKey] || { checked: false, shipQty: '' };
+            var isChecked = state.checked;
+            var shipQtyVal = state.shipQty;
+            var isDisabled = !isChecked;
+
+            html += '<tr' + altClass + ' data-rowkey="' + r.rowKey + '">';
+            html += '<td style="text-align:center"><input type="checkbox" class="material-check" data-rowkey="' + r.rowKey + '" ' + (isDisabled ? 'disabled' : '') + (isChecked ? 'checked' : '') + ' onchange="onCheckChange()"></td>';
+            html += '<td>' + r.billType + '</td>';
+            html += '<td>' + r.date + '</td>';
+            html += '<td>' + r.billNo + '</td>';
+            html += '<td>' + r.supplier + '</td>';
+            html += '<td>' + r.code + '</td>';
+            html += '<td>' + r.version + '</td>';
+            html += '<td>' + r.name + '</td>';
+            html += '<td>' + (r.spec || '') + '</td>';
+            html += '<td style="text-align:right">' + r.qty.toLocaleString() + '</td>';
+            html += '<td style="text-align:right">' + r.remain.toLocaleString() + '</td>';
+            html += '<td style="text-align:center;position:relative"><input type="tel" class="ship-qty-input" data-rowkey="' + r.rowKey + '" data-max="' + r.remain + '" min="0" step="1" value="' + shipQtyVal + '" placeholder="请输入" oninput="onQtyInput(this)" onkeydown="if(event.key===\'.\'||event.key===\'e\'||event.key===\'E\'||event.key===\'-\')event.preventDefault()" onpaste="return false"></td>';
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    }
+
+    // 更新统计
+    var uniqueOrders = {};
+    for (var j = 0; j < filteredRows.length; j++) {
+        uniqueOrders[filteredRows[j].billNo] = true;
+    }
+    document.getElementById('totalInfo').innerHTML = '共 <strong style="color:#333">' + Object.keys(uniqueOrders).length + '</strong> 个订单，<strong style="color:#333">' + filteredRows.length + '</strong> 条物料';
+
+    // 更新分页
+    renderPagination();
+
+    // 重置全选
+    document.getElementById('selectAll').checked = false;
+}
+
+function renderPagination() {
+    var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+    var container = document.getElementById('pagination');
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    var html = '';
+    html += '<span class="page-btn"' + (currentPage <= 1 ? ' disabled' : '') + ' onclick="goPage(' + (currentPage - 1) + ')">&laquo;</span>';
+
+    var startPage = Math.max(1, currentPage - 3);
+    var endPage = Math.min(totalPages, startPage + 6);
+    startPage = Math.max(1, endPage - 6);
+
+    if (startPage > 1) {
+        html += '<span class="page-btn" onclick="goPage(1)">1</span>';
+        if (startPage > 2) html += '<span class="page-btn" disabled>...</span>';
+    }
+    for (var p = startPage; p <= endPage; p++) {
+        html += '<span class="page-btn' + (p === currentPage ? ' active' : '') + '" onclick="goPage(' + p + ')">' + p + '</span>';
+    }
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += '<span class="page-btn" disabled>...</span>';
+        html += '<span class="page-btn" onclick="goPage(' + totalPages + ')">' + totalPages + '</span>';
+    }
+
+    html += '<span class="page-btn"' + (currentPage >= totalPages ? ' disabled' : '') + ' onclick="goPage(' + (currentPage + 1) + ')">&raquo;</span>';
+    html += '<span class="page-info">' + currentPage + ' / ' + totalPages + ' 页</span>';
+    container.innerHTML = html;
+}
+
+function goPage(page) {
+    currentPage = page;
+    renderTable();
+}
+
+function changePageSize() {
+    pageSize = parseInt(document.getElementById('pageSize').value);
+    currentPage = 1;
+    renderTable();
+}
+
+// ========== 采购订单：全选 ==========
+function onSelectAll() {
+    var checked = document.getElementById('selectAll').checked;
+    var checks = document.querySelectorAll('.material-check');
+    for (var i = 0; i < checks.length; i++) {
+        var row = checks[i].closest('tr');
+        var input = row.querySelector('.ship-qty-input');
+        var maxQty = parseInt(input.dataset.max);
+        var rowKey = checks[i].dataset.rowkey;
+        var oldErr = row.querySelector('.qty-error');
+        if (oldErr) oldErr.remove();
+        input.classList.remove('invalid');
+
+        if (checked && maxQty > 0) {
+            input.value = maxQty;
+            checks[i].disabled = false;
+            checks[i].checked = true;
+            checkedState[rowKey] = { checked: true, shipQty: String(maxQty) };
+        } else {
+            // 取消全选：保留输入值，取消勾选，但让checkbox可点击
+            checks[i].checked = false;
+            checks[i].disabled = false;
+            checkedState[rowKey] = { checked: false, shipQty: input.value };
+        }
+    }
+    updateTopShipBtn();
+}
+
+// ========== 采购订单：数量输入 ==========
+function onQtyInput(input) {
+    var row = input.closest('tr');
+    var cb = row.querySelector('.material-check');
+    var maxQty = parseInt(input.dataset.max);
+    var rowKey = input.dataset.rowkey;
+    var val = input.value;
+
+    // 清除粘贴带入的非法字符（小数点、负号、字母）
+    var cleaned = val.replace(/[^0-9]/g, '');
+    if (cleaned !== val) {
+        input.value = cleaned;
+        val = cleaned;
+    }
+    var oldErr = row.querySelector('.qty-error');
+    if (oldErr) oldErr.remove();
+    input.classList.remove('invalid');
+
+    if (!val || parseInt(val) <= 0 || isNaN(parseInt(val))) {
+        cb.disabled = true;
+        cb.checked = false;
+        checkedState[rowKey] = { checked: false, shipQty: val };
+        updateTopShipBtn();
+        return;
+    }
+    // 拦截前导零（如 00、000）
+    if (val.length > 1 && val.charAt(0) === '0') {
+        input.classList.add('invalid');
+        var err = document.createElement('div');
+        err.className = 'qty-error';
+        err.textContent = '不能以0开头';
+        row.querySelector('td[style*="position"]').appendChild(err);
+        cb.disabled = true;
+        cb.checked = false;
+        checkedState[rowKey] = { checked: false, shipQty: val };
+        updateTopShipBtn();
+        return;
+    }
+    if (val.indexOf('.') !== -1) {
+        input.classList.add('invalid');
+        var err = document.createElement('div');
+        err.className = 'qty-error';
+        err.textContent = '请输入正整数';
+        row.querySelector('td[style*="position"]').appendChild(err);
+        cb.disabled = true;
+        cb.checked = false;
+        checkedState[rowKey] = { checked: false, shipQty: val };
+        updateTopShipBtn();
+        return;
+    }
+    var numVal = parseInt(val);
+    if (numVal > maxQty) {
+        input.classList.add('invalid');
+        var err = document.createElement('div');
+        err.className = 'qty-error';
+        err.textContent = '不能超过 ' + maxQty.toLocaleString();
+        row.querySelector('td[style*="position"]').appendChild(err);
+        cb.disabled = true;
+        cb.checked = false;
+        checkedState[rowKey] = { checked: false, shipQty: val };
+    } else {
+        cb.disabled = false;
+        cb.checked = true;
+        checkedState[rowKey] = { checked: true, shipQty: val };
+    }
+    updateTopShipBtn();
+}
+
+// ========== 采购订单：勾选变化 ==========
+function onCheckChange() {
+    var checks = document.querySelectorAll('.material-check');
+    for (var i = 0; i < checks.length; i++) {
+        var row = checks[i].closest('tr');
+        var input = row.querySelector('.ship-qty-input');
+        var rowKey = checks[i].dataset.rowkey;
+        checkedState[rowKey] = { checked: checks[i].checked, shipQty: input.value };
+    }
+    syncSelectAll();
+    updateTopShipBtn();
+}
+
+function syncSelectAll() {
+    var selectAll = document.getElementById('selectAll');
+    var allCb = document.querySelectorAll('.material-check');
+    var allChecked = true;
+    for (var i = 0; i < allCb.length; i++) {
+        if (!allCb[i].checked) { allChecked = false; break; }
+    }
+    selectAll.checked = allChecked;
+}
+
+function updateTopShipBtn() {
+    var btn = document.getElementById('topShipBtn');
+    var checkedCount = 0;
+    var billNos = {};
+    for (var key in checkedState) {
+        if (checkedState[key].checked) {
+            checkedCount++;
+            var parts = key.split('|');
+            billNos[parts[0]] = true;
+        }
+    }
+    if (checkedCount > 0) {
+        btn.disabled = false;
+        btn.textContent = '发货(' + Object.keys(billNos).length + '单/' + checkedCount + '条)';
+    } else {
+        btn.disabled = true;
+        btn.textContent = '发货';
+    }
+}
+
+// ========== 采购订单：确认发货 ==========
+function confirmAllShip() {
+    var tbody = document.getElementById('confirmList');
+    tbody.innerHTML = '';
+    var checkedCount = 0;
+    for (var key in checkedState) {
+        var state = checkedState[key];
+        if (!state.checked) continue;
+        var shipQty = parseInt(state.shipQty);
+        if (isNaN(shipQty) || shipQty <= 0) continue;
+        var parts = key.split('|');
+        var billNo = parts[0];
+        var code = parts[1];
+        // 从 allOrderRows 中找对应的行获取名称和数量
+        var rowData = null;
+        for (var k = 0; k < allOrderRows.length; k++) {
+            if (allOrderRows[k].rowKey === key) { rowData = allOrderRows[k]; break; }
+        }
+        if (!rowData) continue;
+        checkedCount++;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + billNo + '</td><td>' + code + '</td><td>' + rowData.name + '</td><td>' + (rowData.spec || '') + '</td><td style="text-align:right">' + rowData.remain.toLocaleString() + '</td><td style="text-align:right">' + shipQty.toLocaleString() + '</td>';
+        tbody.appendChild(tr);
+    }
+    if (!checkedCount) {
+        alert('请先勾选物料并填写发货数量');
+        return;
+    }
+    document.getElementById('confirmHint').textContent = '以下物料将提交发货，请确认：';
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+function submitAllShip() {
+    alert('发货提交成功！');
+    closeConfirmModal();
+}
+
+// ========== 采购订单：搜索 ==========
+function doSearch() {
+    var billNo = document.getElementById('searchBillNo').value.trim().toLowerCase();
+    var material = document.getElementById('searchMaterial').value.trim().toLowerCase();
+    var dateFrom = document.getElementById('searchDateFrom').value;
+    var dateTo = document.getElementById('searchDateTo').value;
+
+    filteredRows = [];
+    for (var i = 0; i < allOrderRows.length; i++) {
+        var r = allOrderRows[i];
+        if (billNo && r.billNo.toLowerCase().indexOf(billNo) === -1) continue;
+        if (material && r.code.toLowerCase().indexOf(material) === -1) continue;
+        if (dateFrom && r.date < dateFrom) continue;
+        if (dateTo && r.date > dateTo) continue;
+        filteredRows.push(r);
+    }
+    currentPage = 1;
+    renderTable();
+}
+
+function resetSearch() {
+    document.getElementById('searchBillNo').value = '';
+    document.getElementById('searchMaterial').value = '';
+    document.getElementById('searchDateFrom').value = '';
+    document.getElementById('searchDateTo').value = '';
+    filteredRows = allOrderRows.slice();
+    currentPage = 1;
+    renderTable();
+}
+
+document.getElementById('searchBillNo').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+document.getElementById('searchMaterial').addEventListener('keydown', function(e) { if (e.key === 'Enter') doSearch(); });
+
+// ========== 送料通知单：搜索 ==========
+function doNoticeSearch() {
+    var noticeNo = document.getElementById('searchNoticeNo').value.trim().toLowerCase();
+    var material = document.getElementById('searchNoticeMaterial').value.trim().toLowerCase();
+    var dateFrom = document.getElementById('searchNoticeDateFrom').value;
+    var dateTo = document.getElementById('searchNoticeDateTo').value;
+
+    filteredNoticeRows = [];
+    for (var i = 0; i < allNoticeRows.length; i++) {
+        var r = allNoticeRows[i];
+        if (noticeNo && r.noticeNo.toLowerCase().indexOf(noticeNo) === -1) continue;
+        if (material && r.code.toLowerCase().indexOf(material) === -1) continue;
+        if (dateFrom && r.date < dateFrom) continue;
+        if (dateTo && r.date > dateTo) continue;
+        filteredNoticeRows.push(r);
+    }
+    noticePage = 1;
+    renderNoticeTable();
+}
+
+function resetNoticeSearch() {
+    document.getElementById('searchNoticeNo').value = '';
+    document.getElementById('searchNoticeMaterial').value = '';
+    document.getElementById('searchNoticeDateFrom').value = '';
+    document.getElementById('searchNoticeDateTo').value = '';
+    filteredNoticeRows = allNoticeRows.slice();
+    noticePage = 1;
+    renderNoticeTable();
+}
+
+document.getElementById('searchNoticeNo').addEventListener('keydown', function(e) { if (e.key === 'Enter') doNoticeSearch(); });
+document.getElementById('searchNoticeMaterial').addEventListener('keydown', function(e) { if (e.key === 'Enter') doNoticeSearch(); });
+
+// ========== 送料通知单：渲染表格 ==========
+function renderNoticeTable() {
+    var tbody = document.getElementById('noticeTableBody');
+    var start = (noticePage - 1) * noticePageSize;
+    var end = Math.min(start + noticePageSize, filteredNoticeRows.length);
+    var pageRows = filteredNoticeRows.slice(start, end);
+
+    if (pageRows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:#999">暂无数据</td></tr>';
+    } else {
+        var html = '';
+        for (var i = 0; i < pageRows.length; i++) {
+            var r = pageRows[i];
+            var altClass = ((start + i) % 2 === 0) ? ' style="background:#fafbff"' : '';
+            var statusClass = r.status === '已发货' ? 'status-done' : 'status-void';
+            html += '<tr' + altClass + '>';
+            html += '<td>送料通知单</td>';
+            html += '<td>' + r.noticeNo + '</td>';
+            html += '<td>' + r.code + '</td>';
+            html += '<td>' + r.version + '</td>';
+            html += '<td>' + r.name + '</td>';
+            html += '<td>' + (r.spec || '') + '</td>';
+            html += '<td>' + r.supplier + '</td>';
+            html += '<td>' + r.date + '</td>';
+            html += '<td>' + r.relatedBillNo + '</td>';
+            html += '<td>' + r.shipQty.toLocaleString() + '</td>';
+            html += '<td>' + r.shipTime + '</td>';
+            html += '<td style="text-align:center"><span class="status-tag ' + statusClass + '">' + r.status + '</span></td>';
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    }
+
+    var uniqueNotices = {};
+    for (var j = 0; j < filteredNoticeRows.length; j++) {
+        uniqueNotices[filteredNoticeRows[j].noticeNo] = true;
+    }
+    document.getElementById('noticeTotalInfo').innerHTML = '共 <strong style="color:#333">' + Object.keys(uniqueNotices).length + '</strong> 个送料通知单，<strong style="color:#333">' + filteredNoticeRows.length + '</strong> 条物料';
+
+    var totalPages = Math.max(1, Math.ceil(filteredNoticeRows.length / noticePageSize));
+    var pagination = document.getElementById('noticePagination');
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    var pHtml = '';
+    pHtml += '<span class="page-btn" disabled>&laquo;</span>';
+    pHtml += '<span class="page-btn active">1</span>';
+    if (totalPages > 1) pHtml += '<span class="page-btn">' + totalPages + '</span>';
+    pHtml += '<span class="page-btn">&raquo;</span>';
+    pHtml += '<span class="page-info">1 / ' + totalPages + ' 页</span>';
+    pagination.innerHTML = pHtml;
+}
+
+function changeNoticePageSize() {
+    noticePageSize = parseInt(document.getElementById('noticePageSize').value);
+    noticePage = 1;
+    renderNoticeTable();
+}
+
+// ========== 弹窗点击关闭 ==========
+document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) closeConfirmModal(); });
+
+// ========== 初始化 ==========
+renderTable();
+renderNoticeTable();
+</script>
+
+</body>
+</html>

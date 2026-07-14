@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>送料通知单详情 - 供应商物料系统（V3）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f5f7fa; color: #333; }
+        .navbar { background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 24px; height: 48px; display: flex; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .navbar .logo { font-size: 16px; font-weight: 600; color: #1890ff; }
+        .navbar .logo span { color: #333; font-weight: 400; margin-left: 8px; font-size: 13px; }
+        .navbar .back-link { margin-left: auto; color: #1890ff; cursor: pointer; font-size: 14px; text-decoration: none; }
+        .navbar .back-link:hover { text-decoration: underline; }
+        .container { max-width: 1400px; margin: 24px auto; padding: 0 16px; }
+        .breadcrumb { font-size: 13px; color: #999; margin-bottom: 12px; }
+        .breadcrumb a { color: #1890ff; text-decoration: none; cursor: pointer; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .page-title { font-size: 18px; font-weight: 500; margin-bottom: 16px; }
+        .info-card { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 24px; }
+        .info-item label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
+        .info-item .value { font-size: 14px; color: #333; }
+        .material-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        thead { background: #fafafa; }
+        th { padding: 12px 12px; text-align: left; font-weight: 500; color: #555; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        tbody tr:hover { background: #f5f9ff; }
+        .group-alt td { background: #fafbff; }
+        tbody tr:hover td { background: #f5f9ff !important; }
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; line-height: 18px; }
+        .status-done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .status-void { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">供应商物料系统 <span>- 送料通知单详情</span></div>
+    <a class="back-link" href="演示入口.html">&larr; 返回首页</a>
+</div>
+
+<div class="container">
+    <div class="breadcrumb">
+        <a href="演示入口.html">首页</a> / <a href="演示入口.html">采购订单</a> / <a href="order-detail-v3.html" id="breadcrumbOrderLink">采购订单详情</a> / <span id="breadcrumbSnNo">送料通知单详情</span>
+    </div>
+
+    <div class="page-title" id="pageTitle">加载中...</div>
+
+    <div class="info-card">
+        <div class="info-grid">
+            <div class="info-item"><label>单据类型</label><div class="value" id="infoBillType">送料通知单</div></div>
+            <div class="info-item"><label>发货日期</label><div class="value" id="infoDate">—</div></div>
+            <div class="info-item"><label>送料通知单号</label><div class="value" id="infoSnNo">—</div></div>
+            <div class="info-item"><label>关联采购订单</label><div class="value" id="infoBillNo">—</div></div>
+            <div class="info-item"><label>供应商</label><div class="value" id="infoSupplier">—</div></div>
+            <div class="info-item"><label>状态</label><div class="value" id="infoStatus">—</div></div>
+        </div>
+    </div>
+
+    <div class="material-section">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:60px;text-align:center">序号</th>
+                    <th style="width:100px">单据编码</th>
+                    <th style="width:120px">物料编码</th>
+                    <th style="width:85px">物料版本</th>
+                    <th style="min-width:150px">物料名称</th>
+                    <th style="width:90px;text-align:right">发货数量</th>
+                    <th style="width:100px">发货时间</th>
+                    <th style="width:80px;text-align:center">状态</th>
+                </tr>
+            </thead>
+            <tbody id="materialTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // === 送料通知单数据（每条通知单对应多条物料行） ===
+    var noticeData = {
+        'SN20240320001': {
+            date: '2024-03-20',
+            billNo: 'POCG20240315001',
+            supplier: '东莞精密制造有限公司',
+            status: '已发货',
+            materials: [
+                { code: 'MAT-2024-001', version: 'V2.0', name: '精密齿轮组件', shipQty: 100, shipTime: '2024-03-20 10:30', status: '已发货' },
+                { code: 'MAT-2024-002', version: 'V1.5', name: '传动轴配件', shipQty: 200, shipTime: '2024-03-20 10:30', status: '已发货' },
+                { code: 'MAT-2024-004', version: 'V3.0', name: '定位销钉 M8×40', shipQty: 500, shipTime: '2024-03-20 10:30', status: '已发货' },
+            ]
+        }
+    };
+
+    // === 获取送料通知单号 ===
+    var snNo = 'SN20240320001';
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('snNo')) snNo = params.get('snNo');
+    } catch (e) {}
+    if (snNo === 'SN20240320001') {
+        try {
+            var stored = localStorage.getItem('currentSnNo');
+            if (stored && noticeData[stored]) snNo = stored;
+        } catch (e) {}
+    }
+
+    var notice = noticeData[snNo] || noticeData['SN20240320001'];
+
+    // === 更新页面信息 ===
+    document.getElementById('pageTitle').textContent = snNo;
+    document.getElementById('breadcrumbSnNo').textContent = snNo;
+    document.getElementById('infoSnNo').textContent = snNo;
+    document.getElementById('infoDate').textContent = notice.date;
+    document.getElementById('infoBillNo').textContent = notice.billNo;
+    document.getElementById('infoSupplier').textContent = notice.supplier;
+
+    // 设置面包屑返回链接
+    document.getElementById('breadcrumbOrderLink').href = 'order-detail-v3.html?billNo=' + notice.billNo;
+
+    // 状态标签
+    var statusClass = notice.status === '已发货' ? 'status-done' : 'status-void';
+    document.getElementById('infoStatus').innerHTML = '<span class="status-tag ' + statusClass + '">' + notice.status + '</span>';
+
+    // === 渲染物料表格 ===
+    var tbody = document.getElementById('materialTableBody');
+    var html = '';
+    for (var i = 0; i < notice.materials.length; i++) {
+        var m = notice.materials[i];
+        var altClass = (i % 2 === 0) ? ' class="group-alt"' : '';
+        var matStatusClass = m.status === '已发货' ? 'status-done' : 'status-void';
+        html += '<tr' + altClass + '>';
+        html += '<td style="text-align:center;color:#999">' + (i + 1) + '</td>';
+        html += '<td>' + notice.billNo + '</td>';
+        html += '<td>' + m.code + '</td>';
+        html += '<td>' + m.version + '</td>';
+        html += '<td>' + m.name + '</td>';
+        html += '<td style="text-align:right">' + m.shipQty.toLocaleString() + '</td>';
+        html += '<td>' + m.shipTime + '</td>';
+        html += '<td style="text-align:center"><span class="status-tag ' + matStatusClass + '">' + m.status + '</span></td>';
+        html += '</tr>';
+    }
+    tbody.innerHTML = html;
+})();
+</script>
+
+</body>
+</html>
